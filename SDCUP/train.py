@@ -14,6 +14,10 @@ import pandas as pd
 # torch.cuda.set_device(1)
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+'''torch包中包含了名为libiomp5md.dll的文件，
+与Anaconda环境中的同一个文件出现了某种冲突，所以需要删除一个'''
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
