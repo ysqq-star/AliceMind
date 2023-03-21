@@ -65,8 +65,15 @@ class BertTokenizer(object):
         """
         self.vocab = Vocab()
         self.vocab.load(args.vocab_path, is_quiet=True)
+        '''
+        有序字典：（索引，字符）
+        '''
         self.ids_to_tokens = collections.OrderedDict(
             [(ids, tok) for ids, tok in enumerate(self.vocab.i2w)])
+        '''
+        do_basic_tokenize: 在使用wordpiece分词之前进行基本分词
+        wordpiece_tokenizer: 文本转单词
+        '''
         self.do_basic_tokenize = do_basic_tokenize
         if do_basic_tokenize:
           self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case,
@@ -127,8 +134,8 @@ class BasicTokenizer(object):
         # and generally don't have any Chinese data in them (there are Chinese
         # characters in the vocabulary because Wikipedia does have some Chinese
         # words in the English Wikipedia.).
-        text = self._tokenize_chinese_chars(text)
-        orig_tokens = whitespace_tokenize(text)
+        text = self._tokenize_chinese_chars(text)   #中文字加空格
+        orig_tokens = whitespace_tokenize(text)     #删除文本首尾空格
         split_tokens = []
         for token in orig_tokens:
             if self.do_lower_case and token not in self.never_split:
@@ -172,18 +179,21 @@ class BasicTokenizer(object):
 
         return ["".join(x) for x in output]
 
+    '''
+    中日韩文字前后补充空格
+    '''
     def _tokenize_chinese_chars(self, text):
         """Adds whitespace around any CJK character."""
         output = []
         for char in text:
-            cp = ord(char)
+            cp = ord(char) #返回ASCII数值，或者Unicode数值
             if self._is_chinese_char(cp):
                 output.append(" ")
                 output.append(char)
                 output.append(" ")
             else:
                 output.append(char)
-        return "".join(output)
+        return "".join(output) #将序列元素生成字符串
 
     def _is_chinese_char(self, cp):
         """Checks whether CP is the codepoint of a CJK character."""
@@ -229,6 +239,9 @@ class WordpieceTokenizer(object):
         self.unk_token = unk_token
         self.max_input_chars_per_word = max_input_chars_per_word
 
+    '''
+    文本转单词，根据已有的词汇表进行最长匹配算法
+    '''
     def tokenize(self, text):
         """Tokenizes a piece of text into its word pieces.
         This uses a greedy longest-match-first algorithm to perform tokenization
