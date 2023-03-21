@@ -15,17 +15,27 @@ class Vocab(object):
         self.w2c = {} 
         self.reserved_vocab_path = \
             os.path.abspath(os.path.join(os.path.dirname(__file__), "../../models/reserved_vocab.txt"))
-        
+
+    '''
+    语料库的加载：构建索引和字符之间的双向映射关系
+    --vocab_path    ./models/google_zh_vocab.txt    字符（谷歌语料库）
+    is_quiet=False
+    '''    
     def load(self, vocab_path, is_quiet=False):
         with open(vocab_path, mode="r", encoding="utf-8") as reader:
             for index, line in enumerate(reader):
                 try:
+                    '''
+                    dict w2i    从字符映射到索引
+                    list i2w    从索引到字符的映射
+                    '''
                     w = line.strip().split()[0]
                     self.w2i[w] = index
                     self.i2w.append(w)
-                except:
+                except: #换行符
                     self.w2i["???"+str(index)] = index
                     self.i2w.append("???"+str(index))
+                    print("???"+str(index))
                     if not is_quiet:
                         print("Vocabulary file line " + str(index+1) + " has bad format token")
             assert len(self.w2i) == len(self.i2w)
@@ -90,7 +100,14 @@ class Vocab(object):
                 else:
                     w2c[w] += w2c_p[w]
         return (w2i, i2w, w2c)
-                    
+
+    '''
+    词汇表的构建
+    orpus_path
+    tokenizer
+    workers_num=1
+    min_count=1
+    '''         
     def build(self, corpus_path, tokenizer, workers_num=1, min_count=1):
         """ Build vocabulary from the given corpus. """
         print("Start %d workers for building vocabulary..." % workers_num)
