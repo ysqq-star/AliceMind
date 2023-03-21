@@ -1029,8 +1029,6 @@ def Loss_sw_se(s_sc, s_cco, s_sa, s_wn, s_wc, s_wo, s_wv, s_slen, g_sc, g_sa, g_
     loss += Loss_wc(s_wc, g_wc)
     loss += Loss_wo(s_wo, g_wn, g_wo)
     loss += Loss_wv_se(s_wv, g_wn, g_wvi)
-    print("what'wrong?")
-    print(loss)
 
     return loss, Loss_slen(s_slen, g_slen), Loss_sc_multi(s_sc, g_sc), Loss_scco(s_cco, g_cond_conn_op), \
            Loss_sa_multi(s_sa, g_slen, g_sa), Loss_wn(s_wn, g_wn), Loss_wc(s_wc, g_wc), Loss_wo(s_wo, g_wn, g_wo), \
@@ -1136,12 +1134,14 @@ def Loss_wv_se(s_wv, g_wn, g_wvi):
         pytorch 有一些与输入数据类型相关的奇怪行为，64 位和 32 位数据之间存在很大差异
         在 windows 和少数 linux 系统上，默认的 dtype 是 32 位，导致错误 
         '''
-        g_st1 = torch.tensor(g_wvi1[:, 0],dtype = torch.int64)
-        g_ed1 = torch.tensor(g_wvi1[:, 1],dtype = torch.int64)
+        g_st1 = torch.as_tensor(torch.Tensor(g_wvi1[:, 0].numpy()),dtype = torch.long)
+        g_ed1 = torch.as_tensor(torch.Tensor(g_wvi1[:, 1].numpy()),dtype = torch.long)
 
         '''
         g_st1 = g_wvi1[:, 0]
         g_ed1 = g_wvi1[:, 1]
+        g_st1 = torch.tensor(g_wvi1[:, 0],dtype = torch.int64)
+        g_ed1 = torch.tensor(g_wvi1[:, 1],dtype = torch.int64)
         '''
         # loss from the start position
         # print("st_login: ", s_wv[b,:g_wn1,:,0].shape, g_st1)
@@ -1151,8 +1151,13 @@ def Loss_wv_se(s_wv, g_wn, g_wvi):
         发现g_st1和g_ed1的类型是int32 -> 在前面强制转换为int64
         s_wv[b, :g_wn1, :, 0]和s_wv[b, :g_wn1, :, 1]的类型是float32
         '''
-        loss += F.cross_entropy(s_wv[b, :g_wn1, :, 0], g_st1)
 
+        '''
+        据说，如果要成功
+        要求output和label分别是float32与int64
+        '''
+        loss += F.cross_entropy(s_wv[b, :g_wn1, :, 0], g_st1)
+        
         # loss from the end position
         # print("ed_login: ", s_wv[b,:g_wn1,:,1].shape, g_ed1)
         loss += F.cross_entropy(s_wv[b, :g_wn1, :, 1], g_ed1)
