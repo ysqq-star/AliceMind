@@ -23,6 +23,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
 def load_hyperparam(args):
+    '''
+    --config_path ./models/bert_base_config.json 
+    从外部加载模型超参数
+    '''
     with open(args.config_path, mode="r", encoding="utf-8") as f:
         param = json.load(f)
     args.emb_size = param.get("emb_size", 768)
@@ -308,6 +312,19 @@ def get_yewu_single_data(args):
     test_data = []
     tables = {}
     shuffle_train = True
+    '''
+    程序运行时输入
+        --data_dir      ./data/cbank            文件夹目录
+    程序内增设参数
+        --train_name    0901_train_cbank.txt    训练数据
+        --dev_name      0901_dev_cbank.txt      验证数据
+        --test_name"    0901_test_cbank.txt     测试数据
+    数据目录        数据文件
+    args.data_dir, args.train_name
+    args.data_dir, args.dev_name
+    args.data_dir, args.test_name
+    逐行获取，获得数据集train_data、dev_data、test_data
+    '''
     with open(os.path.join(args.data_dir, args.train_name), encoding='utf-8') as f:
         for idx, line in enumerate(f):
             t1 = json.loads(line)
@@ -322,16 +339,41 @@ def get_yewu_single_data(args):
         for idx, line in enumerate(f):
             t1 = json.loads(line)
             test_data.append(t1)
-
+    '''
+    程序运行时输入
+        --data_dir      ./data/cbank            文件夹目录
+    程序内增设参数
+        --train_name    0901_train_cbank.txt    训练数据
+        --table_name    cbank_table.json        数据表 （金融机构？）
+    args.data_dir, args.table_name
+    '''
     with open(os.path.join(args.data_dir, args.table_name), encoding='utf-8') as f:
+        '''
+        仅有两行：一行金融机构、一行奔驰
+        '''
         for line in f.readlines():
             table = eval(line.strip())
             # table = json.dumps(line.strip())
+            '''
+            tablename：表名，用于识别不同的表
+            types：各列类型 text、number、bool
+            header：各列名称
+            unit：各列单位
+            attribute:各列的约束？ KEY、 PRIMARY、 MODIFIER
+            rows：各行数据
+
+            一致性的改动：
+            tabelname:'tablename' 'id'，id会被翻译为tabelname
+            types、col_types:统一小写，两个名称对应两个一致的table
+            header、headers：完全一致
+            unit：空的改为'NULL'
+            '''
             if 'tablename' in table:
                 tid = table['tablename']
             else:
                 tid = table['id']
                 table['tablename'] = table['id']
+
             if 'types' in table:
                 table['col_types'] = table['types']
                 table['col_types'] = [x.lower() for x in table['col_types']]
@@ -339,7 +381,7 @@ def get_yewu_single_data(args):
             else:
                 table['col_types'] = [x.lower() for x in table['col_types']]
                 table['types'] = [x.lower() for x in table['col_types']]
-
+            
             if 'header' in table:
                 table['headers'] = table['header']
             if 'headers' in table:
@@ -349,19 +391,22 @@ def get_yewu_single_data(args):
             else:
                 table['unit'] = ['Null'] * len(table['headers'])
 
-
             tables[tid] = table
 
-
+    '''
+    lengths: 14625 1603 1530
+    '''
     print('lengths:', len(train_data), len(val_data), len(test_data))
 
-
+    '''
+    把数据集放入DataLoader，并划分batch
+    '''
     train_loader = torch.utils.data.DataLoader(
-        batch_size=args.bS,
-        dataset=train_data,
-        shuffle=shuffle_train,
-        num_workers=1,
-        collate_fn=temp_func  # now dictionary values are not merged!
+        batch_size=args.bS,     #批大小
+        dataset=train_data,     #训练集
+        shuffle=shuffle_train,  #打乱数据
+        num_workers=1,          #单线程
+        collate_fn=temp_func  # 字典数据的合并算法？
     )
     dev_loader = torch.utils.data.DataLoader(
         batch_size=args.bS,
@@ -378,7 +423,7 @@ def get_yewu_single_data(args):
         collate_fn=temp_func  # now dictionary values are not merged!
     )
 
-
+    #返回数据集、数据库、和loader
     return train_data, val_data, test_data, tables, train_loader, dev_loader, test_loader
 
 
@@ -418,7 +463,6 @@ def train(train_loader, train_table, model, model_bert, opt, bert_config, tokeni
     right_sql_cnt = 0
     sql_acc = 0.0
 
-
     # Engine for SQL querying.
     # engine = DBEngine(os.path.join(path_db, f"{dset_name}.db"))
     #engine = DBEngine(path_db)
@@ -426,6 +470,10 @@ def train(train_loader, train_table, model, model_bert, opt, bert_config, tokeni
     if dset_name == 'train':
         epoch_start_time = time.time()
         for iB, t in enumerate(train_loader):
+            print("training")
+            print(iB)
+            
+
             torch.cuda.empty_cache()
             if iB % 100 == 0:
                 print(iB, "/", len(train_loader), "\tUsed time:", time.time() - epoch_start_time, "\tloss:", ave_loss/(iB+0.00001),)
@@ -468,13 +516,7 @@ def train(train_loader, train_table, model, model_bert, opt, bert_config, tokeni
                                                                       g_cond_conn_op=g_cond_conn_op, g_slen=g_slen,
                                                                       knowledge = knowledge, knowledge_header = knowledge_header)
             loss, loss_slen, loss_sc, loss_scco, loss_sa, loss_wn, loss_wc, loss_wo, loss_wvi = Loss_sw_se(s_sc, s_cco,
-                                                                                                           s_sa, s_wn,
-                                                                                                           s_wc, s_wo,
-                                                                                                           s_wv, s_slen,
-                                                                                                           g_sc, g_sa,
-                                                                                                           g_wn, g_wc,
-                                                                                                           g_wo, g_wvi,
-                                                                                                           g_cond_conn_op,
+                                                                                                           s_sa, s_wn,                                                                                           g_cond_conn_op,
                                                                                                            g_slen)
             loss_all = loss
             if dset_name == 'dev':
