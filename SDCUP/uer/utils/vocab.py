@@ -35,7 +35,6 @@ class Vocab(object):
                 except: #换行符
                     self.w2i["???"+str(index)] = index
                     self.i2w.append("???"+str(index))
-                    print("???"+str(index))
                     if not is_quiet:
                         print("Vocabulary file line " + str(index+1) + " has bad format token")
             assert len(self.w2i) == len(self.i2w)
