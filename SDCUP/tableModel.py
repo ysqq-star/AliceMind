@@ -294,6 +294,9 @@ class TableTextPretraining(nn.Module):
         self.config = args
         self.hidden_size = args.hidden_size
         self.vocab_size = args.vocab_size
+        '''
+        加载预训练模型
+        '''
         self.pre_encoder = build_model(args)
         if args.use_cuda:
             pretrained_model = torch.load(args.pretrained_model_path)
