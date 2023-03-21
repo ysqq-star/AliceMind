@@ -195,7 +195,7 @@ def get_table_bert(args):
     if args.use_cuda:
         table_bert_model_dict = torch.load(args.pretrained_model_path)
     else:
-        table_bert_model_dict = torch.load(args.pretrained_model_path, map_location='cpu')
+        table_bert_model_dict = torch.load(args.pretrained_model_path, map_location='cpu') #一段重复的代码？
     table_bert_model_dict = {k: v for k, v in table_bert_model_dict.items() if k in table_bert_model.state_dict()}
     table_bert_model.load_state_dict(table_bert_model_dict, strict=False)
     # print('model bert:', table_bert_model)
@@ -239,7 +239,7 @@ def get_models(args, trained=False):
     print(f"Fine-tune BERT: {args.fine_tune}")
 
     # Get BERT
-    table_bert, tokenizer, bert_config = get_table_bert(args)
+    table_bert, tokenizer, bert_config = get_table_bert(args) #加载预训练的参数
 
     args.iS = bert_config.hidden_size * args.num_target_layers  # Seq-to-SQL input vector dimenstion
 
@@ -254,6 +254,9 @@ def get_models(args, trained=False):
     model = Seq2SQL_v1(args.iS, args.hS, args.lS, args.dr, n_cond_ops, n_agg_ops)
     model = model.to(device)
 
+    '''
+    默认是false ，没见过的部分
+    '''
     if trained:
         assert path_model_bert != None
         assert path_model != None
@@ -846,7 +849,13 @@ if __name__ == '__main__':
     --tepoch                    3       ???有什么用
     '''
     num_train_optimization_steps = int(len(train_data) / args.bS / args.accumulate_gradients) * args.tepoch
-    model, model_bert, tokenizer, bert_config = get_models(args, trained=False)
+    '''
+    model
+    model_bert
+    tokenizer
+    bert_config
+    '''
+    model, model_bert, tokenizer, bert_config = get_models(args, trained=False) 
 
     ## 5. Get optimizers
     opt, opt_bert = get_opt(args, model, model_bert, args.fine_tune, num_train_optimization_steps)
