@@ -152,7 +152,8 @@ class DataProcessor(object):
     @classmethod
     def _read_tsv(cls, input_file, quotechar=None):
         """Reads a tab separated value file."""
-        with open(input_file, "r") as f:
+        '''win10 encodeing '''
+        with open(input_file, "r", encoding='utf_8') as f:
             reader = csv.reader(f, delimiter="\t", quotechar=quotechar)
             lines = []
             for line in reader:
@@ -1053,10 +1054,26 @@ def main():
     model = BertForSequenceClassificationMultiTask(bert_config, label_list, args.core_encoder)
     if args.init_checkpoint is not None:
         try:
-            model.bert.load_state_dict(torch.load(args.init_checkpoint, map_location='cpu'))
-        except:
+            state_dict = torch.load(args.init_checkpoint, map_location='cpu')
+            '''
+            print("cpu")
+            print(state_dict)
+            到这一步是成功的，能够输出OrderedDict形式的模型参数，可以输出看到
+            
+            load_state_dict(state_dict) 改成 load_state_dict(state_dict, False)
+            
+            load_state_dict方法参数的官方说明 strict  参数默认是true，
+            他的含义是 是否严格要求state_dict中的键与该模块的键返回的键匹配
+
+            !!!!失败原因：数据集和与训练模型要对应，
+            readme文档中使用MNLI的数据集作为示例，它对应的是en的模型，不能使用ch模型
+            '''
+            model.bert.load_state_dict(state_dict,False)
+        except Exception as e:
+            print(e)
             new_state_dict = {}
-            state_dict = torch.load(args.init_checkpoint, map_location='cuda')
+            '''把cuda改成cpu了，only cpu'''
+            state_dict = torch.load(args.init_checkpoint, map_location='cpu')
             for key in state_dict:
                 if key.startswith('bert.'):
                     new_state_dict[key[5:]] = state_dict[key]
