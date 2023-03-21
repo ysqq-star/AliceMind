@@ -1,4 +1,7 @@
 # -*- encoding:utf-8 -*-
+'''
+https://developer.aliyun.com/article/823610
+'''
 import os, sys, argparse, re, json
 import time
 import torch
@@ -170,12 +173,22 @@ def mkdir(path):
         os.makedirs(path)
         print("make new folder ", path)
 
+'''
+https://zhuanlan.zhihu.com/p/98855346
+该模型有以下主要优点：
+1）采用MLM对双向的Transformers进行预训练，以生成深层的双向语言表征。
+2）预训练后，只需要添加一个额外的输出层进行fine-tune，就可以在各种各样的下游任务中取得state-of-the-art的表现。
+在这过程中并不需要对BERT进行任务特定的结构修改。
+
+运行时指定预训练模型的位置
+--table_bert_dir    {path_to_downloaded_pretrained_model}  
+'''
 def get_table_bert(args):
     bert_config = args
     args.num_hidden_layers = args.layers_num
 
     args.pretrained_model_path = args.table_bert_dir
-    uer_tokenizer = BertTokenizer(args)
+    uer_tokenizer = BertTokenizer(args) #分词器
 
     table_bert_model = TableTextPretraining(args)
 
@@ -214,6 +227,12 @@ def get_models(args, trained=False):
     agg_ops = ["", "AVG", "MAX", "MIN", "COUNT", "SUM", "COMPARE", "GROUP BY", "SAME"]
     cond_ops = [">", "<", "==", "!=", "ASC", "DESC"]
 
+    '''
+    Batch_size = 24         24*1
+    BERT parameters:
+    learning rate: 1e-05    lr_bert
+    Fine-tune BERT: True    fine_tune
+    '''
     print(f"Batch_size = {args.bS * args.accumulate_gradients}")
     print(f"BERT parameters:")
     print(f"learning rate: {args.lr_bert}")
@@ -812,15 +831,20 @@ if __name__ == '__main__':
     pre_vocab.load(args.vocab_path)
     args.vocab = pre_vocab
     args.vocab_size = len(pre_vocab)
-
+    
     ## 2. Paths
     BERT_PT_PATH = './model/ERNIE'
     ## 3. Load data
     # train_data, train_table, dev_data, dev_table, train_loader, dev_loader = get_bussiness_data(path_nl2sql, args)
     train_data, val_data, test_data, tables, train_loader, dev_loader, test_loader = get_yewu_single_data(args)
-
+    
     ## 4. Build & Load models
     # To start from the pre-trained models, un-comment following lines.
+    '''
+    --bS                        3       batch Size赋值24
+    --accumulate_gradients      1       反向传播的累积次数
+    --tepoch                    3       ???有什么用
+    '''
     num_train_optimization_steps = int(len(train_data) / args.bS / args.accumulate_gradients) * args.tepoch
     model, model_bert, tokenizer, bert_config = get_models(args, trained=False)
 
